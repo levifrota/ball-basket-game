@@ -140,23 +140,26 @@ function init() {
 }
 
 function createHUD() {
-  // Cria um canvas para desenhar o HUD (pontuação e tempo)
+  // Aumenta a altura para acomodar o highscore
   hudCanvas = document.createElement('canvas');
   hudCanvas.width = 512;
-  hudCanvas.height = 128;
+  hudCanvas.height = 160;
   const ctx = hudCanvas.getContext('2d');
   ctx.font = "40px Arial";
   ctx.fillStyle = "white";
   ctx.textAlign = "left";
   ctx.fillText("Pontuação: " + score, 10, 50);
   ctx.fillText("Tempo: " + Math.floor(timer), 10, 100);
+  // Recupera o highscore do localStorage (ou 0 se não existir)
+  let highscore = Number(localStorage.getItem("highscore") || 0);
+  ctx.fillText("Recorde: " + highscore, 10, 150);
   
   hudTexture = new THREE.CanvasTexture(hudCanvas);
   const hudMaterial = new THREE.SpriteMaterial({ map: hudTexture, transparent: true });
   hudSprite = new THREE.Sprite(hudMaterial);
   
   // Ajusta o tamanho e posiciona o HUD na cena
-  hudSprite.scale.set(5, 1.25, 1);
+  hudSprite.scale.set(5, 1.56, 1);
   hudSprite.position.set(0, 4.5, 0);
   scene.add(hudSprite);
 }
@@ -169,9 +172,10 @@ function updateHUD() {
   ctx.textAlign = "left";
   ctx.fillText("Pontuação: " + score, 10, 50);
   ctx.fillText("Tempo: " + Math.floor(timer), 10, 100);
+  let highscore = Number(localStorage.getItem("highscore") || 0);
+  ctx.fillText("Recorde: " + highscore, 10, 150);
   hudTexture.needsUpdate = true;
 }
-
 // Cria um botão como sprite usando canvas com escala baseada na razão largura/altura
 function createButton(text, width, height) {
   const canvas = document.createElement('canvas');
@@ -269,21 +273,31 @@ function onMouseMove(event) {
 }
 
 function spawnBall() {
-  // Cria uma bolinha no topo com posição x aleatória
   const radius = 0.3;
   const ballGeometry = new THREE.SphereGeometry(radius, 32, 32);
-  
-  // Carrega uma textura para a bolinha (aparência metálica)
   const textureLoader = new THREE.TextureLoader();
   const texture = textureLoader.load('assets/metal.jpg');
   
-  // Determina se a bolinha é “especial” (20% de chance)
-  const isSpecial = Math.random() < 0.2;
+  // Determina o tipo da bolinha:
+  // 10% chance de ser especial negativa, 10% chance de ser especial positiva, 80% normal.
+  let specialType = null;
+  const r = Math.random();
+  if (r < 0.1) {
+      specialType = "negative"; // se pega, perde 5 pontos
+  } else if (r < 0.2) {
+      specialType = "positive"; // se pega, ganha 5 pontos
+  }
+  
   let material;
-  if (isSpecial) {
-    material = new THREE.MeshStandardMaterial({ color: '#55B02E', metalness: 0.5, roughness: 0.7 });
+  if (specialType === "positive") {
+      // Bolinha especial positiva (cor verde, por exemplo)
+      material = new THREE.MeshStandardMaterial({ color: '#55B02E', metalness: 0.5, roughness: 0.7 });
+  } else if (specialType === "negative") {
+      // Bolinha especial negativa (cor vermelha)
+      material = new THREE.MeshStandardMaterial({ color: '#FF0000', metalness: 0.5, roughness: 0.7 });
   } else {
-    material = new THREE.MeshStandardMaterial({ map: texture, metalness: 0.5, roughness: 0.5 });
+      // Bolinha normal (com textura metálica)
+      material = new THREE.MeshStandardMaterial({ map: texture, metalness: 0.5, roughness: 0.5 });
   }
   
   const ball = new THREE.Mesh(ballGeometry, material);
@@ -291,11 +305,12 @@ function spawnBall() {
   ball.position.y = 10;
   ball.userData = {
     velocity: new THREE.Vector3(0, -ballFallSpeed, 0),
-    special: isSpecial
+    specialType: specialType  // pode ser "positive", "negative" ou null
   };
   scene.add(ball);
   balls.push(ball);
 }
+
 
 function animate() {
   requestAnimationFrame(animate);
@@ -314,7 +329,14 @@ function animate() {
     if (timer <= 0) {
       timer = 0;
       gameOver = true;
-      alert('Fim de jogo! Pontuação: ' + score);
+      let highscore = localStorage.getItem("highscore") || 0;
+      highscore = Number(highscore);
+      if (score > highscore) {
+        localStorage.setItem("highscore", score);
+        alert("Parabéns! Você atingiu um novo recorde! Pontuação: " + score);
+      } else {
+        alert("Fim de jogo! Pontuação: " + score);
+      }
       endGame();
     }
     
@@ -331,11 +353,20 @@ function animate() {
       ball.position.addScaledVector(ball.userData.velocity, delta);
       
       // Checa colisão com a cesta (aproximação)
+      // Checa colisão com a cesta (aproximação)
       if (ball.position.y - 0.3 <= basket.position.y + 0.25) {
         const halfWidth = 1.5;
         if (ball.position.x >= basket.position.x - halfWidth &&
             ball.position.x <= basket.position.x + halfWidth) {
-          score += ball.userData.special ? 5 : 1;
+          
+          if (ball.userData.specialType === "positive") {
+            score += 5;
+          } else if (ball.userData.specialType === "negative") {
+            score -= 5;
+          } else {
+            score += 1;
+          }
+          
           impactSound.currentTime = 0;
           impactSound.play();
           if (navigator.vibrate) {
@@ -346,10 +377,11 @@ function animate() {
           continue;
         }
       }
+
       
       // Remove bolinhas que caem abaixo do chão e penaliza se for especial
       if (ball.position.y < -5) {
-        if (ball.userData.special) {
+        if (ball.userData.specialType === "positive") {
           score -= 3;
         }
         scene.remove(ball);
