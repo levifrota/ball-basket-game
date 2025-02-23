@@ -19,10 +19,8 @@ let gameStarted = false;
 
 let lastTime = 0;
 
-// Elementos HUD (pontuação e tempo) na cena
 let hudCanvas, hudTexture, hudSprite;
 
-// Botões 3D (sprites) e lista de objetos clicáveis
 let startButtonSprite, pauseButtonSprite;
 let clickableObjects = [];
 
@@ -30,7 +28,7 @@ let clickableObjects = [];
 let raycaster = new THREE.Raycaster();
 let mouse = new THREE.Vector2();
 
-// Som de impacto (substitua a URL se desejar)
+// Som de impacto
 const impactSound = new Audio('assets/cartoon-jump-6462.mp3');
 
 // Inicializa a cena e inicia o loop de animação
@@ -38,7 +36,6 @@ init();
 animate();
 
 function init() {
-  // Configuração básica da cena e câmera
   scene = new THREE.Scene();
   scene.background = new THREE.Color(0x000000);
   
@@ -54,7 +51,6 @@ function init() {
   renderer.setSize(window.innerWidth, window.innerHeight);
   document.body.appendChild(renderer.domElement);
   
-  // Luzes
   const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
   scene.add(ambientLight);
   
@@ -62,7 +58,7 @@ function init() {
   directionalLight.position.set(0, 10, 10);
   scene.add(directionalLight);
   
-  // Criação da cesta (grupo composto por base e paredes)
+  // Criação da cesta
   basket = new THREE.Group();
   const basketWidth = 3;
   const basketHeight = 0.5;
@@ -116,10 +112,8 @@ function init() {
   floor.position.y = -5;
   scene.add(floor);
   
-  // Cria o HUD (pontuação e tempo) na cena
   createHUD();
   
-  // Cria os botões 3D e os torna clicáveis
   createButtons();
   document.addEventListener('click', onDocumentClick, false);
   
@@ -140,7 +134,6 @@ function init() {
 }
 
 function createHUD() {
-  // Aumenta a altura para acomodar o highscore
   hudCanvas = document.createElement('canvas');
   hudCanvas.width = 512;
   hudCanvas.height = 160;
@@ -176,6 +169,7 @@ function updateHUD() {
   ctx.fillText("Recorde: " + highscore, 10, 150);
   hudTexture.needsUpdate = true;
 }
+
 // Cria um botão como sprite usando canvas com escala baseada na razão largura/altura
 function createButton(text, width, height) {
   const canvas = document.createElement('canvas');
@@ -183,14 +177,11 @@ function createButton(text, width, height) {
   canvas.height = height;
   const ctx = canvas.getContext('2d');
   
-  // Fundo do botão
   ctx.fillStyle = '#333';
   ctx.fillRect(0, 0, width, height);
-  // Borda
   ctx.strokeStyle = 'white';
   ctx.lineWidth = 4;
   ctx.strokeRect(0, 0, width, height);
-  // Texto centralizado
   ctx.font = "bold 30px Arial";
   ctx.fillStyle = 'white';
   ctx.textAlign = 'center';
@@ -202,7 +193,6 @@ function createButton(text, width, height) {
   const sprite = new THREE.Sprite(material);
   
   sprite.userData = { callback: null, text: text, width: width, height: height, canvas: canvas };
-  // Define a escala do sprite mantendo a proporção (fator base: 64)
   sprite.scale.set(width / 64, height / 64, 1);
   return sprite;
 }
@@ -231,7 +221,6 @@ function updateButtonTexture(sprite, text) {
 function createButtons() {
   // Cria o botão "Iniciar Jogo"
   startButtonSprite = createButton("Iniciar Jogo", 256, 64);
-  // Posiciona com z = 0
   startButtonSprite.position.set(0, 2, 0);
   scene.add(startButtonSprite);
   clickableObjects.push(startButtonSprite);
@@ -267,7 +256,7 @@ function onDocumentClick(event) {
 }
 
 function onMouseMove(event) {
-  // Atualiza a posição horizontal da cesta conforme o mouse
+  // Atualiza a posição horizontal da cesta conforme o movimento do mouse
   const mouseX = (event.clientX / window.innerWidth) * 2 - 1;
   basket.position.x = mouseX * 10;
 }
@@ -290,10 +279,10 @@ function spawnBall() {
   
   let material;
   if (specialType === "positive") {
-      // Bolinha especial positiva (cor verde, por exemplo)
+      // Bolinha especial positiva
       material = new THREE.MeshStandardMaterial({ color: '#55B02E', metalness: 0.5, roughness: 0.7 });
   } else if (specialType === "negative") {
-      // Bolinha especial negativa (cor vermelha)
+      // Bolinha especial negativa
       material = new THREE.MeshStandardMaterial({ color: '#FF0000', metalness: 0.5, roughness: 0.7 });
   } else {
       // Bolinha normal (com textura metálica)
@@ -305,7 +294,7 @@ function spawnBall() {
   ball.position.y = 10;
   ball.userData = {
     velocity: new THREE.Vector3(0, -ballFallSpeed, 0),
-    specialType: specialType  // pode ser "positive", "negative" ou null
+    specialType: specialType 
   };
   scene.add(ball);
   balls.push(ball);
@@ -352,7 +341,6 @@ function animate() {
       ball.userData.velocity.y -= gravity * delta;
       ball.position.addScaledVector(ball.userData.velocity, delta);
       
-      // Checa colisão com a cesta (aproximação)
       // Checa colisão com a cesta (aproximação)
       if (ball.position.y - 0.3 <= basket.position.y + 0.25) {
         const halfWidth = 1.5;
@@ -418,7 +406,6 @@ function startGame() {
 
 function togglePause() {
   if (!gameStarted) return;
-  // Apenas alterna o estado de pausa sem reiniciar o jogo
   paused = !paused;
   if (paused) {
     updateButtonTexture(pauseButtonSprite, "Continuar");
