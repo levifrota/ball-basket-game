@@ -266,53 +266,53 @@ function spawnBall() {
   const ballGeometry = new THREE.SphereGeometry(radius, 32, 32);
   const textureLoader = new THREE.TextureLoader();
   const texture = textureLoader.load('assets/metal.jpg');
-  
-  // Determina o tipo da bolinha:
-  // 10% chance de ser especial negativa, 10% chance de ser especial positiva, 80% normal.
+
   let specialType = null;
   const r = Math.random();
   if (r < 0.1) {
-      specialType = "negative"; // se pega, perde 5 pontos
+    specialType = "negative";
   } else if (r < 0.2) {
-      specialType = "positive"; // se pega, ganha 5 pontos
+    specialType = "positive";
+  } else if (r < 0.6) {
+    specialType = "rubber";  // Bola amarela (rubber)
   }
-  
+
   let material;
   if (specialType === "positive") {
-      // Bolinha especial positiva
-      material = new THREE.MeshStandardMaterial({ color: '#55B02E', metalness: 0.5, roughness: 0.7 });
+    material = new THREE.MeshStandardMaterial({ color: '#55B02E', metalness: 0.5, roughness: 0.7 });
   } else if (specialType === "negative") {
-      // Bolinha especial negativa
-      material = new THREE.MeshStandardMaterial({ color: '#FF0000', metalness: 0.5, roughness: 0.7 });
+    material = new THREE.MeshStandardMaterial({ color: '#FF0000', metalness: 0.5, roughness: 0.7 });
+  } else if (specialType === "rubber") {
+    material = new THREE.MeshStandardMaterial({ color: '#FFD700', metalness: 0.1, roughness: 0.9 });
   } else {
-      // Bolinha normal (com textura metálica)
-      material = new THREE.MeshStandardMaterial({ map: texture, metalness: 0.5, roughness: 0.5 });
+    material = new THREE.MeshStandardMaterial({ map: texture, metalness: 0.5, roughness: 0.5 });
   }
-  
+
   const ball = new THREE.Mesh(ballGeometry, material);
   ball.position.x = (Math.random() - 0.5) * 20;
   ball.position.y = 10;
   ball.userData = {
-    velocity: new THREE.Vector3(0, -ballFallSpeed, 0),
-    specialType: specialType 
+    velocity: new THREE.Vector3((Math.random() - 0.5) * 2, -ballFallSpeed, 0),
+    specialType: specialType,
+    bounces: 0,
+    lifetime: 30
   };
+
   scene.add(ball);
   balls.push(ball);
 }
 
-
 function animate() {
   requestAnimationFrame(animate);
-  
+
   const now = performance.now() / 1000;
   let delta = now - lastTime;
   lastTime = now;
-  
-  // Se o jogo estiver pausado, força delta = 0 para não atualizar o estado
+
   if (paused) {
     delta = 0;
   }
-  
+
   if (gameStarted && !paused && !gameOver) {
     timer -= delta;
     if (timer <= 0) {
@@ -328,47 +328,60 @@ function animate() {
       }
       endGame();
     }
-    
+
     lastSpawnTime += delta;
     if (lastSpawnTime > ballSpawnInterval) {
       spawnBall();
       lastSpawnTime = 0;
     }
-    
-    // Atualiza cada bolinha
+
     for (let i = balls.length - 1; i >= 0; i--) {
       const ball = balls[i];
       ball.userData.velocity.y -= gravity * delta;
       ball.position.addScaledVector(ball.userData.velocity, delta);
-      
-      // Checa colisão com a cesta (aproximação)
-      if (ball.position.y - 0.3 <= basket.position.y + 0.25) {
+      ball.userData.lifetime -= delta;
+
+      if (ball.position.y - 0.3 <= basket.position.y + 0.25 && ball.userData.velocity.y < 0) {
         const halfWidth = 1.5;
         if (ball.position.x >= basket.position.x - halfWidth &&
-            ball.position.x <= basket.position.x + halfWidth) {
-          
-          if (ball.userData.specialType === "positive") {
+          ball.position.x <= basket.position.x + halfWidth) {
+          if (ball.userData.specialType === "rubber") {
+            // A bola amarela faz o usuário perder 3 segundos
+            timer = Math.max(0, timer - 3);
+          } else if (ball.userData.specialType === "positive") {
             score += 5;
           } else if (ball.userData.specialType === "negative") {
             score -= 5;
           } else {
             score += 1;
           }
-          
+
+          // Som de impacto
           impactSound.currentTime = 0;
           impactSound.play();
+
           if (navigator.vibrate) {
             navigator.vibrate(100);
           }
+
           scene.remove(ball);
           balls.splice(i, 1);
           continue;
         }
       }
 
-      
-      // Remove bolinhas que caem abaixo do chão e penaliza se for especial
-      if (ball.position.y < -5) {
+      if (ball.userData.specialType === "rubber" && ball.position.y < -4.8) {
+        if (ball.userData.bounces < 3) {
+          ball.userData.velocity.y = Math.sqrt(2 * gravity * 10);
+          ball.userData.velocity.x += (Math.random() - 0.5) * 4;
+          ball.userData.bounces++;
+        } else if (ball.userData.lifetime <= 0) {
+          scene.remove(ball);
+          balls.splice(i, 1);
+        }
+      }
+
+      if (ball.position.y < -5 && ball.userData.specialType !== "rubber") {
         if (ball.userData.specialType === "positive") {
           score -= 3;
         }
@@ -377,10 +390,12 @@ function animate() {
       }
     }
   }
-  
+
   updateHUD();
   renderer.render(scene, camera);
 }
+
+
 
 function startGame() {
   // Reinicia variáveis do jogo
