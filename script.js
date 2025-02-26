@@ -24,9 +24,32 @@ let hudCanvas, hudTexture, hudSprite;
 let startButtonSprite, pauseButtonSprite;
 let clickableObjects = [];
 
-// Variáveis para raycasting
 let raycaster = new THREE.Raycaster();
 let mouse = new THREE.Vector2();
+
+const audio = new Audio('assets/MountainTrials.mp3');
+audio.loop = true; 
+
+audio.volume = 0.2;
+
+function handleVisibilityChange() {
+    if (document.hidden) {
+        audio.pause();
+    } else {
+        audio.play();
+    }
+}
+function startAudio() {
+  audio.play().catch(error => {
+      console.log("Erro ao tentar iniciar o áudio:", error);
+  });
+}
+
+document.addEventListener("visibilitychange", handleVisibilityChange);
+window.addEventListener('load', () => {
+  audio.play();
+});
+document.body.addEventListener('click', startAudio);
 
 // Som de impacto
 const impactSound = new Audio('assets/cartoon-jump-6462.mp3');
