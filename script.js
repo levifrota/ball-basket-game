@@ -36,6 +36,11 @@ const glassBreakSound = new Audio('assets/breaking-glass-88411.mp3');
 init();
 animate();
 
+function clearLocalStorage() {
+  localStorage.clear();
+  alert("localStorage limpo!");
+}
+
 function init() {
   scene = new THREE.Scene();
   scene.background = new THREE.Color(0x000000);
@@ -132,6 +137,7 @@ function init() {
   gui.add(params, 'ballSpeed', 0.1, 5).name('Velocidade').onChange(function(value) {
     ballFallSpeed = value;
   });
+  gui.add({ clearLocalStorage }, 'clearLocalStorage').name('Limpar localStorage');
 }
 
 function createHUD() {
@@ -286,7 +292,7 @@ function spawnBall() {
     specialType = "negative";
   } else if (r < 0.2) {
     specialType = "positive";
-  } else if (r < 0.6) {
+  } else if (r < 0.3) {
     specialType = "rubber";  // Bola amarela (rubber)
   }
 
