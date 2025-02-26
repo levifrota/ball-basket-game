@@ -1,5 +1,5 @@
 # 🎮 Basket Ball Game 🏀
-Este é um projeto desenvolvido para a disciplina de Computação Gráfica, utilizando tecnologias as Three.js, Canvas e dat.GUI. O objetivo do jogo é capturar bolinhas que caem do topo da tela usando uma cesta controlada pelo mouse. 🖱️
+Este é um projeto desenvolvido para a disciplina de Computação Gráfica do campus da UFC - Sobral, utilizando as tecnologias Three.js, Canvas e dat.GUI. O objetivo do jogo é capturar bolinhas que caem do topo da tela usando uma cesta controlada pelo mouse. 🖱️
 
 ## 🚀 Como Executar o Projeto
 Clone o repositório:
@@ -27,9 +27,9 @@ Abra o arquivo index.html no seu navegador!
   - Detecção de colisão entre bolinhas e a cesta.
   - Pontuação baseada no tipo de bolinha capturada:
     - Bolinhas comuns: +1 ponto. ⚫
-    - Bolinhas especiais (positivas): +5 pontos. 🟢
-    - Bolinhas especiais (negativas): -5 pontos. 🔴
-    - Bolinhas de borracha (amarelas): penalizam o jogador, reduzindo o tempo em 3 segundos. 🟡
+    - Bolinhas bônus (positivas): +5 pontos, aumentam o tempo em 3 segundos, -1 ponto se perdida. 🟢
+    - Bolinhas de vidro (negativas): -5 pontos. 🔴
+    - Bolinhas de borracha (amarelas): +1 ponto, reduzindo o tempo em 3 segundos. 🟡
 
 ### Requisitos Opcionais
 - Painel de Controle (dat.GUI) 🎛️:
@@ -48,17 +48,21 @@ Abra o arquivo index.html no seu navegador!
   - Canvas: Criação de texturas dinâmicas (HUD e botões).
   - dat.GUI: Painel de controle ajustável.
 ## 🎯 Como Jogar
-### 1. Iniciar o Jogo:
+**1. Iniciar o Jogo:**
  Clique no botão "Iniciar Jogo" para começar.
-### 2. Controlar a Cesta:
+
+**2. Controlar a Cesta:**
  Movimente o mouse para mover a cesta horizontalmente.
-### 3. Capturar Bolinhas:
+
+**3. Capturar Bolinhas:**
  Capture as bolinhas que caem do topo da tela.
  Cuidado com as bolinhas especiais! Elas podem aumentar ou diminuir sua pontuação.
-### 4. Ajustar Configurações:
+
+**4. Ajustar Configurações:**
  Use o painel de controle (dat.GUI) para ajustar a gravidade e a velocidade das bolinhas.
-### 5. Finalizar o Jogo:
- O jogo termina após 60 segundos. 
+
+**5. Finalizar o Jogo:**
+ O jogo termina após o tempo se esgotar. 
 
 ## 👥 Participantes 
 - [Ailton Guarinho de Vasconcelos](https://github.com/AkowsS)

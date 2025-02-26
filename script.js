@@ -30,6 +30,7 @@ let mouse = new THREE.Vector2();
 
 // Som de impacto
 const impactSound = new Audio('assets/cartoon-jump-6462.mp3');
+const glassBreakSound = new Audio('assets/breaking-glass-88411.mp3');
 
 // Inicializa a cena e inicia o loop de animação
 init();
@@ -128,7 +129,7 @@ function init() {
   gui.add(params, 'gravity', 0, 20).name('Gravidade').onChange(function(value) {
     gravity = value;
   });
-  gui.add(params, 'ballSpeed', 0.1, 5).name('Velocidade das Bolinhas').onChange(function(value) {
+  gui.add(params, 'ballSpeed', 0.1, 5).name('Velocidade').onChange(function(value) {
     ballFallSpeed = value;
   });
 }
@@ -256,9 +257,20 @@ function onDocumentClick(event) {
 }
 
 function onMouseMove(event) {
-  // Atualiza a posição horizontal da cesta conforme o movimento do mouse
+  // Obtém a posição do mouse normalizada (-1 a 1)
   const mouseX = (event.clientX / window.innerWidth) * 2 - 1;
-  basket.position.x = mouseX * 10;
+
+  // Define a largura do mundo 3D visível na cena
+  const worldWidth = 20; // Ajuste conforme necessário
+
+  // Mapeia a posição do mouse para a largura do mundo 3D
+  basket.position.x = mouseX * (worldWidth / 2);
+
+  // Limita a posição da cesta para evitar que ela saia da tela
+  const basketHalfWidth = 1.5; // Metade da largura da cesta
+  const maxX = (worldWidth / 2) - basketHalfWidth; // Limite máximo no eixo X
+  const minX = -maxX; // Limite mínimo no eixo X
+  basket.position.x = Math.max(minX, Math.min(maxX, basket.position.x));
 }
 
 function spawnBall() {
@@ -266,6 +278,7 @@ function spawnBall() {
   const ballGeometry = new THREE.SphereGeometry(radius, 32, 32);
   const textureLoader = new THREE.TextureLoader();
   const texture = textureLoader.load('assets/metal.jpg');
+  const glassTexture = textureLoader.load('assets/glass.png');
 
   let specialType = null;
   const r = Math.random();
@@ -281,7 +294,8 @@ function spawnBall() {
   if (specialType === "positive") {
     material = new THREE.MeshStandardMaterial({ color: '#55B02E', metalness: 0.5, roughness: 0.7 });
   } else if (specialType === "negative") {
-    material = new THREE.MeshStandardMaterial({ color: '#FF0000', metalness: 0.5, roughness: 0.7 });
+    material = new THREE.MeshStandardMaterial({ color: '#F00000', map: glassTexture, transparent: true, opacity: 0.8, metalness: 0.1, roughness: 0.2
+    });
   } else if (specialType === "rubber") {
     material = new THREE.MeshStandardMaterial({ color: '#FFD700', metalness: 0.1, roughness: 0.9 });
   } else {
@@ -345,25 +359,47 @@ function animate() {
         const halfWidth = 1.5;
         if (ball.position.x >= basket.position.x - halfWidth &&
           ball.position.x <= basket.position.x + halfWidth) {
-          if (ball.userData.specialType === "rubber") {
-            // A bola amarela faz o usuário perder 3 segundos
-            timer = Math.max(0, timer - 3);
-          } else if (ball.userData.specialType === "positive") {
-            score += 5;
-          } else if (ball.userData.specialType === "negative") {
-            score -= 5;
-          } else {
-            score += 1;
+          // Verifica o tipo de bolinha e executa a lógica correspondente
+          switch (ball.userData.specialType) {
+            case "rubber":
+              // Bola de borracha: penaliza o tempo e dá +1 ponto
+              timer = Math.max(0, timer - 3); // Reduz o tempo em 3 segundos
+              score += 1; // Adiciona +1 ponto
+              score = Math.max(0, score); // Garante que a pontuação não seja negativa
+              break;
+
+            case "positive":
+              // Bola positiva: aumenta a pontuação e o tempo
+              score += 5;
+              timer += 3;
+              break;
+
+            case "negative":
+              // Bola de vidro: penaliza a pontuação e toca som de vidro quebrando
+              score -= 5;
+              score = Math.max(0, score); // Garante que a pontuação não seja negativa
+              glassBreakSound.currentTime = 0;
+              glassBreakSound.play();
+              break;
+
+            default:
+              // Bolinha comum: aumenta a pontuação
+              score += 1;
+              break;
           }
 
-          // Som de impacto
-          impactSound.currentTime = 0;
-          impactSound.play();
+          // Toca o som de captura para qualquer bolinha que não seja de vidro
+          if (ball.userData.specialType !== "negative") {
+            impactSound.currentTime = 0;
+            impactSound.play();
+          }
 
+          // Vibração (se suportada)
           if (navigator.vibrate) {
             navigator.vibrate(100);
           }
 
+          // Remove a bolinha da cena e do array
           scene.remove(ball);
           balls.splice(i, 1);
           continue;
@@ -383,7 +419,8 @@ function animate() {
 
       if (ball.position.y < -5 && ball.userData.specialType !== "rubber") {
         if (ball.userData.specialType === "positive") {
-          score -= 3;
+          score -= 1;
+          score = Math.max(0, score); // Garante que a pontuação não seja negativa
         }
         scene.remove(ball);
         balls.splice(i, 1);
